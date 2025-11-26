@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Document Created</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container py-5">
+      <h1 class="mb-4">Document Created</h1>
+
+      <p class="lead">Your document was created successfully.</p>
+
+      <p>
+        <a class="btn btn-success" href="{{ doc_url }}" target="_blank">Open Document in Google Docs</a>
+        <a class="btn btn-secondary ms-2" href="/">Create another</a>
+      </p>
+
+      <h3 class="mt-4">Chapter Page Numbers</h3>
+      <ul class="list-group mt-2">
+        {% for title, page in chapter_pages.items() %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ title }}
+            <span class="badge bg-primary rounded-pill">{{ page if page is not none else 'Not found' }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+
+    </div>
+  </body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fill Story Template</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container py-5">
+      <h1 class="mb-4">Fill Story Template</h1>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="alert alert-{{category}}">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">Title</label>
+          <input name="title" class="form-control" value="{{ defaults.title }}" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Storytellers</label>
+          <div id="storytellers-container" class="mb-2"></div>
+          <button id="add-storyteller" type="button" class="btn btn-outline-secondary btn-sm">+ Add Storyteller</button>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Teacher Name</label>
+          <input name="teacher_name" class="form-control" value="{{ defaults.teacher_name }}">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Dedication</label>
+          <textarea name="dedication" class="form-control" rows="2">{{ defaults.dedication }}</textarea>
+        </div>
+
+        <div class="row">
+          <div class="col-12 mb-3">
+            <label class="form-label">Chapters</label>
+            <div id="chapters-container" class="mb-2"></div>
+            <button id="add-chapter" type="button" class="btn btn-outline-primary btn-sm">+ Add Chapter</button>
+          </div>
+        </div>
+
+        <!-- Storytellers double as authors now; authors section removed -->
+
+        <button class="btn btn-primary">Create Document</button>
+      </form>
+    </div>
+    
+      <script>
+        // Defaults passed from server
+        const defaults = {{ defaults|tojson }};
+
+        function createStorytellerRow(name = '', desc = ''){
+          const wrapper = document.createElement('div');
+          wrapper.className = 'card mb-2 p-2';
+
+          const header = document.createElement('div');
+          header.className = 'd-flex gap-2 mb-2';
+
+          const nameInput = document.createElement('input');
+          nameInput.type = 'text';
+          nameInput.name = 'storyteller_name';
+          nameInput.placeholder = 'Storyteller name';
+          nameInput.className = 'form-control';
+          nameInput.value = name;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'btn btn-danger btn-sm';
+          removeBtn.textContent = 'Remove';
+          removeBtn.onclick = () => wrapper.remove();
+
+          header.appendChild(nameInput);
+          header.appendChild(removeBtn);
+
+          const textarea = document.createElement('textarea');
+          textarea.name = 'storyteller_description';
+          textarea.rows = 2;
+          textarea.className = 'form-control';
+          textarea.placeholder = 'Short description (author bio)';
+          textarea.value = desc;
+
+          wrapper.appendChild(header);
+          wrapper.appendChild(textarea);
+          return wrapper;
+        }
+
+        function createChapterRow(title = '', text = ''){
+          const wrapper = document.createElement('div');
+          wrapper.className = 'card mb-2 p-2';
+
+          const header = document.createElement('div');
+          header.className = 'd-flex gap-2 mb-2';
+
+          const titleInput = document.createElement('input');
+          titleInput.type = 'text';
+          titleInput.name = 'chapter_title';
+          titleInput.placeholder = 'Chapter Title';
+          titleInput.className = 'form-control';
+          titleInput.value = title;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'btn btn-danger btn-sm';
+          removeBtn.textContent = 'Remove';
+          removeBtn.onclick = () => wrapper.remove();
+
+          header.appendChild(titleInput);
+          header.appendChild(removeBtn);
+
+          const textarea = document.createElement('textarea');
+          textarea.name = 'chapter_text';
+          textarea.rows = 3;
+          textarea.className = 'form-control';
+          textarea.placeholder = 'Chapter text...';
+          textarea.value = text;
+
+          wrapper.appendChild(header);
+          wrapper.appendChild(textarea);
+          return wrapper;
+        }
+
+        // (authors removed — use storytellers instead)
+
+
+        document.getElementById('add-storyteller').addEventListener('click', function(){
+          document.getElementById('storytellers-container').appendChild(createStorytellerRow());
+        });
+
+        document.getElementById('add-chapter').addEventListener('click', function(){
+          document.getElementById('chapters-container').appendChild(createChapterRow());
+        });
+
+        // Populate defaults on load
+        (function initDefaults(){
+          const chaptersContainer = document.getElementById('chapters-container');
+          const titles = (defaults.chapter_titles || '').split('\n').map(s=>s.trim()).filter(Boolean);
+          const texts = (defaults.chapter_texts || '').split('\n').map(s=>s.trim()).filter(Boolean);
+
+          const max = Math.max(titles.length, texts.length, 1);
+          for(let i=0;i<max;i++){
+            const t = titles[i] || '';
+            const b = texts[i] || '';
+            chaptersContainer.appendChild(createChapterRow(t,b));
+          }
+
+          const storytellersContainer = document.getElementById('storytellers-container');
+          // Populate storytellers from defaults: names (comma-separated) and bios (one per line)
+          const names = (defaults.storyteller_names || '').split(',').map(s=>s.trim()).filter(Boolean);
+          const bios = (defaults.author_bios || '').split('\n').map(s=>s.trim()).filter(Boolean);
+          const maxS = Math.max(names.length, bios.length, 1);
+          for(let j=0;j<maxS;j++){
+            const n = names[j] || '';
+            const d = bios[j] || '';
+            storytellersContainer.appendChild(createStorytellerRow(n, d));
+          }
+        })();
+      </script>
+  </body>
+</html>
