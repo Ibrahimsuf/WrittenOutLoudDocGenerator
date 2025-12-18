@@ -94,15 +94,6 @@ def fill_template(data):
     docs_service = build("docs", "v1", credentials=creds)
     drive_service = build("drive", "v3", credentials=creds)
 
-    # Step 1: Create TEMPORARY document to get page numbers
-    print("📝 Creating temporary document to calculate page numbers...")
-    temp_copy = (
-        drive_service.files()
-        .copy(fileId=TEMPLATE_DOC_ID, body={"name": f"{OUTPUT_NAME}_TEMP"}, supportsAllDrives=True)
-        .execute()
-    )
-    temp_document_id = temp_copy.get("id")
-
     # Step 2: Fill temporary document with content (without page numbers)
     storyteller_names = [name.strip().title() for name in data["storyteller_names"]]
     # sort storyteller names alphabetically and do with author bios as well
@@ -119,109 +110,12 @@ def fill_template(data):
         "{{chapter_titles}}": "\n".join([title for idx, title in enumerate(data["chapter_titles"]) ]),
         "{{page_numbers}}": "Calculating page numbers...",  # Temporary placeholder
     }
-
-    requests = [
-        {
-            "replaceAllText": {
-                "containsText": {"text": key, "matchCase": True},
-                "replaceText": value,
-            }
-        }
-        for key, value in replacements.items()
-    ]
-
-    docs_service.documents().batchUpdate(
-        documentId=temp_document_id, body={"requests": requests}
-    ).execute()
-
-    # Handle chapter body insertion
-    insert_index = find_placeholder_index(docs_service, temp_document_id, "{{chapter_body}}")
-    requests = []
-
-    requests.append({
-        "deleteContentRange": {
-            "range": {"startIndex": insert_index[0], "endIndex": insert_index[1]}
-        }
-    })
-
-    location_index = insert_index[0]
-
-    for i, (title, text) in enumerate(zip(data["chapter_titles"], data["chapter_texts"])):
-        title_text = f"{title.upper()}\n"
-        body_text = f"{text}\n\n"
-
-        if i > 0:
-            requests.append({
-                "insertPageBreak": {"location": {"index": location_index}}
-            })
-            location_index += 1
-
-        requests.append({
-            "insertText": {"location": {"index": location_index}, "text": title_text}
-        })
-        title_start = location_index
-        title_end = title_start + len(title_text)
-        location_index = title_end
-
-        requests.append({
-            "updateParagraphStyle": {
-                "range": {"startIndex": title_start, "endIndex": title_end},
-                "paragraphStyle": {"alignment": "CENTER"},
-                "fields": "alignment"
-            }
-        })
-
-        requests.append({
-            "insertText": {"location": {"index": location_index}, "text": body_text}
-        })
-        body_start = location_index
-        body_end = body_start + len(body_text)
-        location_index = body_end
-
-        requests.append({
-            "updateParagraphStyle": {
-                "range": {"startIndex": body_start, "endIndex": body_end},
-                "paragraphStyle": {"alignment": "JUSTIFIED"},
-                "fields": "alignment"
-            }
-        })
-
-    docs_service.documents().batchUpdate(
-        documentId=temp_document_id, body={"requests": requests}
-    ).execute()
-
-    # Step 3: Get page numbers from temporary document
-    print("📄 Finding page numbers for chapters...")
-    chapter_pages = get_all_chapter_pages(drive_service, temp_document_id, data["chapter_titles"])
-
-    print("\n📖 Chapter Page Numbers:")
-    for title, page_num in chapter_pages.items():
-        if page_num:
-            print(f"  • {title}: Page {page_num}")
-        else:
-            print(f"  • {title}: Not found")
-
-    # Step 4: Format page numbers string
-    page_numbers_text = "\n".join([
-        str(page_num) if page_num is not None else "Not found"
-        for page_num in chapter_pages.values()
-    ])
-
-    # Step 5: Delete temporary document
-    delete_document(drive_service, temp_document_id)
-
-    # Step 6: Create FINAL document with actual page numbers
-    print("\n📝 Creating final document with page numbers...")
     final_copy = (
         drive_service.files()
         .copy(fileId=TEMPLATE_DOC_ID, body={"name": OUTPUT_NAME}, supportsAllDrives=True)
         .execute()
     )
     final_document_id = final_copy.get("id")
-
-    # Update replacements with actual page numbers
-    replacements["{{page_numbers}}"] = page_numbers_text
-
     requests = [
         {
             "replaceAllText": {
