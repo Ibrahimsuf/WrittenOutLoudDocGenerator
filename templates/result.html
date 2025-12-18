@@ -17,17 +17,6 @@
         <a class="btn btn-success" href="{{ doc_url }}" target="_blank">Open Document in Google Docs</a>
         <a class="btn btn-secondary ms-2" href="/">Create another</a>
       </p>
-
-      <h3 class="mt-4">Chapter Page Numbers</h3>
-      <ul class="list-group mt-2">
-        {% for title, page in chapter_pages.items() %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            {{ title }}
-            <span class="badge bg-primary rounded-pill">{{ page if page is not none else 'Not found' }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-
     </div>
   </body>
 </html>
