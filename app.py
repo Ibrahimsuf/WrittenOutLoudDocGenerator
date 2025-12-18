@@ -21,8 +21,6 @@ SCOPES = [
 
 SERVICE_ACCOUNT_FILE = "service_account.json"
 TEMPLATE_DOC_ID = "18csyiB4l_olvLnW_5wlOHYpZh-9LJFlGcU0r6dbpOBk"
-OUTPUT_NAME = "Filled_Story_Document"
-
 
 # -------------------------
 # App factory
@@ -101,7 +99,7 @@ def create_app():
             drive_service.files()
             .copy(
                 fileId=TEMPLATE_DOC_ID,
-                body={"name": OUTPUT_NAME},
+                body={"name": data["title"]},
                 supportsAllDrives=True,
             )
             .execute()
@@ -248,6 +246,6 @@ def create_app():
         return "ok", 200
 
     return app
-    
+
 if __name__ == "__main__":
     create_app().run(debug=True, host="127.0.0.1", port=5000)
