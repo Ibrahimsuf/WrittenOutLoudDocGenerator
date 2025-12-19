@@ -2,6 +2,7 @@ import pytest
 from bs4 import BeautifulSoup
 from app import create_app
 
+
 BASE_PAYLOAD = {
     "title": "The River and the Stone",
     "storyteller_name": "A. Lewis",
@@ -9,9 +10,38 @@ BASE_PAYLOAD = {
     "teacher_name": "Dr. K. Morales",
     "dedication": "For those who listen carefully.",
     "chapter_title": "Beginnings",
-    "chapter_text": "Once there was a village beside a river.\nThey lived in harmony with the land.\nAnd they lived in harmony with the river.",
+    "chapter_text": (
+        "Once there was a village beside a river.\n\rThey lived in harmony with the land.\n\r And they lived in harmony with the river.\n"
+    ),
 }
 
+PAYLOAD_DOUBLE_NEWLINE = {
+        "title": "Drift Test",
+        "storyteller_name": ["Alice", "Bob"],
+        "storyteller_description": ["Bio Alice", "Bio Bob"],
+        "teacher_name": "Prof X",
+        "dedication": "To all readers",
+        "chapter_title": ["One", "Two", "Three", "Four", "Five"],
+        "chapter_text": [
+            "This is normal text.\n\n\u200b\u200b\u200bHidden zero-width spaces included.\nEnd of chapter.",
+            "Text 2"*1000,
+            "Text 3"*1000,
+            "Text 4"*1000,
+            "Text 5"*1000,
+        ],
+    }
+
+CONTROL_CHAR_STRINGS = [
+    "null\x00byte",
+    "bell\x07sound",
+    "back\x08space",
+    "escape\x1b[31mRED\x1b[0m",
+    "carriage\rreturn",
+    "line\nbreak",
+    "tab\tchar",
+    "unit\x1fseparator",
+    "zero\u200bwidth\u200cjoiner",
+]
 
 @pytest.fixture
 def client():
@@ -44,8 +74,16 @@ def test_basic_post(client):
     doc_url = extract_doc_link(response)
     assert doc_url is not None
     assert doc_url.startswith("https://docs.google.com")
-
-
+def test_double_newline_paragraphs(client):
+    response = client.post(
+        "/",
+        data=PAYLOAD_DOUBLE_NEWLINE,
+        content_type="application/x-www-form-urlencoded",
+    )
+    assert response.status_code == 200
+    doc_url = extract_doc_link(response)
+    assert doc_url is not None
+    assert doc_url.startswith("https://docs.google.com")
 @pytest.mark.parametrize(
     "payload",
     [
@@ -69,6 +107,35 @@ def test_edge_cases(client, payload):
     doc_url = extract_doc_link(response)
     assert doc_url is not None
     assert doc_url.startswith("https://docs.google.com")
+
+
+@pytest.mark.parametrize("control_str", CONTROL_CHAR_STRINGS)
+@pytest.mark.parametrize(
+    "field",
+    [
+        "title",
+        "storyteller_name",
+        "storyteller_description",
+        "teacher_name",
+        "dedication",
+        "chapter_title",
+        "chapter_text",
+    ],
+)
+def test_control_characters(client, field, control_str):
+    payload = {**BASE_PAYLOAD, field: f"prefix-{control_str}-suffix"}
+
+    response = client.post(
+        "/",
+        data=payload,
+        content_type="application/x-www-form-urlencoded",
+    )
+
+    assert response.status_code == 200
+    doc_url = extract_doc_link(response)
+    assert doc_url is not None
+    assert doc_url.startswith("https://docs.google.com")
+
 
 def test_html_escaping(client):
     payload = {**BASE_PAYLOAD, "chapter_text": "<script>alert('xss')</script>"}

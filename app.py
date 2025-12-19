@@ -8,6 +8,9 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from PyPDF2 import PdfReader
 from rapidfuzz import fuzz
+import logging
+import traceback
+
 
 
 # -------------------------
@@ -30,6 +33,11 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_secret_key")
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+    logger = logging.getLogger(__name__)
     # -------------------------
     # Helpers (close over config)
     # -------------------------
@@ -199,7 +207,8 @@ def create_app():
 
         if request.method == "POST":
             form = request.form.to_dict(flat=False)
-
+            logger.info("Received form data keys: %s", list(form.keys()))
+            logger.info("Form data: %s", form)
             data = {
                 "title": form.get("title", [""])[0].strip(),
                 "storyteller_names": [
@@ -237,7 +246,8 @@ def create_app():
                 )
 
             except Exception as e:
-                flash(f"Error creating document: {e}", "danger")
+                logger.exception("Error creating document")
+                flash("Error creating document. See server logs for details.", "danger")
 
         return render_template("index.html", defaults=defaults)
 
