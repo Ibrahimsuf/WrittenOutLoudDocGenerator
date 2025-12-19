@@ -206,9 +206,8 @@ def create_app():
         defaults = {}
 
         if request.method == "POST":
-            logger.info("Received form data keys: %s", list(form.keys()))
             form = request.form.to_dict(flat=False)
-
+            logger.info("Received form data keys: %s", list(form.keys()))
             data = {
                 "title": form.get("title", [""])[0].strip(),
                 "storyteller_names": [
