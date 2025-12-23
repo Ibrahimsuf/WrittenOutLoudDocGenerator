@@ -1,6 +1,7 @@
 import pytest
 from bs4 import BeautifulSoup
 from app import create_app
+import json
 
 
 BASE_PAYLOAD = {
@@ -68,6 +69,18 @@ def test_basic_post(client):
     response = client.post(
         "/",
         data=BASE_PAYLOAD,
+        content_type="application/x-www-form-urlencoded",
+    )
+    assert response.status_code == 200
+    doc_url = extract_doc_link(response)
+    assert doc_url is not None
+    assert doc_url.startswith("https://docs.google.com")
+def test_carriage_return(client):
+    with open("input2.json", "r") as f:
+        payload = json.load(f)
+    response = client.post(
+        "/",
+        data=payload,
         content_type="application/x-www-form-urlencoded",
     )
     assert response.status_code == 200
