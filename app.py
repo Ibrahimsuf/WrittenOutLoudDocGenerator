@@ -253,7 +253,7 @@ def create_app():
                 logger.exception("Error creating document")
                 flash("Error creating document. See server logs for details.", "danger")
 
-        return render_template("index.html", defaults=defaults)
+        return render_template("index.html", defaults={})
 
     @app.route("/health")
     def health():
