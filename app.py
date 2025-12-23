@@ -203,8 +203,6 @@ def create_app():
 
     @app.route("/", methods=["GET", "POST"])
     def index():
-        defaults = {}
-
         if request.method == "POST":
             form = request.form.to_dict(flat=False)
             logger.info("Received form data keys: %s", list(form.keys()))
@@ -229,6 +227,12 @@ def create_app():
                 ],
             }
 
+            for key, value in data.items():
+                if isinstance(value, list):
+                    for i, v in enumerate(value):
+                        data[key][i] = v.replace("\r\n", "\n").replace("\r", "\n")
+                elif isinstance(value, str):
+                    data[key] = value.replace("\r\n", "\n").replace("\r", "\n")
             try:
                 doc_id = fill_template(data)
 
