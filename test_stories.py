@@ -87,6 +87,18 @@ def test_carriage_return(client):
     doc_url = extract_doc_link(response)
     assert doc_url is not None
     assert doc_url.startswith("https://docs.google.com")
+def test_inserting_after_end_bug(client):
+    with open("input3.json", "r") as f:
+        payload = json.load(f)
+    response = client.post(
+        "/",
+        data=payload,
+        content_type="application/x-www-form-urlencoded",
+    )
+    assert response.status_code == 200
+    doc_url = extract_doc_link(response)
+    assert doc_url is not None
+    assert doc_url.startswith("https://docs.google.com")
 def test_double_newline_paragraphs(client):
     response = client.post(
         "/",
