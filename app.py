@@ -153,7 +153,7 @@ def create_app():
                 requests.append({"insertPageBreak": {"location": {"index": index}}})
                 index += 1
 
-            title_text = f"{title.upper()}\n"
+            title_text = f"{title.upper()}\n\n"
             body_text = f"{text}\n\n"
 
             requests.extend([
