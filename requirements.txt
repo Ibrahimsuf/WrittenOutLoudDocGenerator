@@ -1,7 +1,7 @@
-Flask>=2.3.2
-google-api-python-client>=2.100.0
-google-auth>=2.23.0
-PyPDF2>=3.1.1
-rapidfuzz>=3.2.2
-Werkzeug>=2.3.8
-gunicorn>=21.2.0
+Flask
+google-api-python-client
+google-auth
+PyPDF2
+rapidfuzz
+Werkzeug
+gunicorn
