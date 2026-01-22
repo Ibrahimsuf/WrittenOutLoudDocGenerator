@@ -240,7 +240,7 @@ def create_app():
                 drive = build("drive", "v3", credentials=creds)
                 drive.permissions().create(
                     fileId=doc_id,
-                    body={"type": "anyone", "role": "reader"},
+                    body={"type": "anyone", "role": "editor"},
                     supportsAllDrives=True,
                 ).execute()
 
