@@ -1,6 +1,6 @@
 import pytest
 from bs4 import BeautifulSoup
-from app import create_app
+from app import create_app, convert_html_to_requests
 import json
 
 
@@ -173,3 +173,11 @@ def test_html_escaping(client):
     doc_url = extract_doc_link(response)
     assert doc_url is not None
     assert doc_url.startswith("https://docs.google.com")
+
+
+def test_html_to_requests():
+    app = create_app()
+    requests = convert_html_to_requests(0, '<p>This text is <strong>bold. </strong>This is in <em>italics. </em>This is <em>underlined</em></p>')
+    expected_result = ([{'insertText': {'location': {'index': 0}, 'text': 'This text is '}}, {'updateTextStyle': {'range': {'startIndex': 0, 'endIndex': 13}, 'textStyle': {'bold': False, 'italic': False, 'underline': False}, 'fields': 'bold,italic,underline'}}, {'insertText': {'location': {'index': 13}, 'text': 'bold. '}}, {'updateTextStyle': {'range': {'startIndex': 13, 'endIndex': 19}, 'textStyle': {'bold': True, 'italic': False, 'underline': False}, 'fields': 'bold,italic,underline'}}, {'insertText': {'location': {'index': 19}, 'text': 'This is in '}}, {'updateTextStyle': {'range': {'startIndex': 19, 'endIndex': 30}, 'textStyle': {'bold': False, 'italic': False, 'underline': False}, 'fields': 'bold,italic,underline'}}, {'insertText': {'location': {'index': 30}, 'text': 'italics. '}}, {'updateTextStyle': {'range': {'startIndex': 30, 'endIndex': 39}, 'textStyle': {'bold': False, 'italic': True, 'underline': False}, 'fields': 'bold,italic,underline'}}, {'insertText': {'location': {'index': 39}, 'text': 'This is '}}, {'updateTextStyle': {'range': {'startIndex': 39, 'endIndex': 47}, 'textStyle': {'bold': False, 'italic': False, 'underline': False}, 'fields': 'bold,italic,underline'}}, {'insertText': {'location': {'index': 47}, 'text': 'underlined'}}, {'updateTextStyle': {'range': {'startIndex': 47, 'endIndex': 57}, 'textStyle': {'bold': False, 'italic': True, 'underline': False}, 'fields': 'bold,italic,underline'}}, {'insertText': {'location': {'index': 57}, 'text': '\n'}}], 58)
+    assert requests == expected_result
+

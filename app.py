@@ -10,6 +10,7 @@ from PyPDF2 import PdfReader
 from rapidfuzz import fuzz
 import logging
 import traceback
+from bs4 import BeautifulSoup, NavigableString, Tag
 
 
 
@@ -25,6 +26,88 @@ SCOPES = [
 SERVICE_ACCOUNT_FILE = "service_account.json"
 TEMPLATE_DOC_ID = "18csyiB4l_olvLnW_5wlOHYpZh-9LJFlGcU0r6dbpOBk"
 
+def convert_html_to_requests(start_index, html_content):
+        soup = BeautifulSoup(html_content, "html.parser")
+        requests = []
+        current_index = start_index
+
+        def process_inline(node, active_styles):
+            nonlocal current_index
+            if isinstance(node, NavigableString):
+                text = str(node)
+                # Filter out zero-width spaces or other oddities if necessary, 
+                # but keep it simple for now. 
+                # Google docs treats \n as a newline char in insertText.
+                if not text:
+                    return
+
+                requests.append({
+                    "insertText": {
+                        "location": {"index": current_index},
+                        "text": text
+                    }
+                })
+
+                fields = ["bold", "italic", "underline"]
+                text_style = {}
+
+                for field in fields:
+                    text_style[field] = (field in active_styles)
+                
+                requests.append({
+                    "updateTextStyle": {
+                        "range": {
+                            "startIndex": current_index,
+                            "endIndex": current_index + len(text)
+                        },
+                        "textStyle": text_style,
+                        "fields": ",".join(fields)
+                    }
+                })
+
+                current_index += len(text)
+
+            elif isinstance(node, Tag):
+                new_styles = active_styles.copy()
+                if node.name in ['strong', 'b']:
+                    new_styles.add('bold')
+                if node.name in ['em', 'i']:
+                    new_styles.add('italic')
+                if node.name == 'u':
+                    new_styles.add('underline')
+                
+                if node.name == 'br':
+                    requests.append({
+                        "insertText": {
+                            "location": {"index": current_index},
+                            "text": "\n"
+                        }
+                    })
+                    current_index += 1
+                    return
+
+                for child in node.children:
+                    process_inline(child, new_styles)
+
+        # Process top-level blocks
+        # If the input is just text without <p>, beautifulsoup puts it in body/top level.
+        # We process all children. If they are block elements, we might want to ensure a newline at the end.
+        
+        for node in soup.children:
+            if isinstance(node, Tag) and node.name in ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote']:
+                process_inline(node, set())
+                # Block element usually implies a paragraph break at the end
+                requests.append({
+                    "insertText": {
+                        "location": {"index": current_index},
+                        "text": "\n"
+                    }
+                })
+                current_index += 1
+            else:
+                # Inline content at root
+                process_inline(node, set())
+        return requests, current_index
 # -------------------------
 # App factory
 # -------------------------
@@ -154,8 +237,7 @@ def create_app():
                 index += 1
 
             title_text = f"{title.upper()}\n\n"
-            body_text = f"{text}\n\n"
-
+            
             requests.extend([
                 {"insertText": {"location": {"index": index}, "text": title_text}},
                 {
@@ -172,21 +254,32 @@ def create_app():
 
             index += len(title_text)
 
-            requests.extend([
-                {"insertText": {"location": {"index": index}, "text": body_text}},
-                {
-                    "updateParagraphStyle": {
-                        "range": {
-                            "startIndex": index,
-                            "endIndex": index + len(body_text),
-                        },
-                        "paragraphStyle": {"alignment": "JUSTIFIED"},
-                        "fields": "alignment",
-                    }
-                },
-            ])
+            # Insert body text (HTML conversion)
+            start_body_index = index
+            html_reqs, new_index = convert_html_to_requests(index, text)
+            requests.extend(html_reqs)
+            index = new_index
 
-            index += len(body_text)
+            # Ensure separation or closing newline if desired
+            requests.append({
+                "insertText": {
+                    "location": {"index": index},
+                    "text": "\n"
+                }
+            })
+            index += 1
+
+            # Apply Justified alignment to the body we just inserted
+            requests.append({
+                "updateParagraphStyle": {
+                    "range": {
+                        "startIndex": start_body_index,
+                        "endIndex": index,
+                    },
+                    "paragraphStyle": {"alignment": "JUSTIFIED"},
+                    "fields": "alignment",
+                }
+            })
 
         docs_service.documents().batchUpdate(
             documentId=document_id,

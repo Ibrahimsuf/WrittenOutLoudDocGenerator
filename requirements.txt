@@ -5,3 +5,4 @@ PyPDF2
 rapidfuzz
 Werkzeug
 gunicorn
+beautifulsoup4
