@@ -174,6 +174,20 @@ def test_html_escaping(client):
     assert doc_url is not None
     assert doc_url.startswith("https://docs.google.com")
 
+def test_less_bios_than_authors(client):
+    payload = BASE_PAYLOAD
+    payload["storyteller_name"] = ["Author 1", "Author 2", "Author 3"]
+    payload["storyteller_description"] = ["Bio 1", "Bio 2"]
+    response = client.post(
+        "/",
+        data=payload,
+        content_type="application/x-www-form-urlencoded",
+    )
+    assert response.status_code == 200
+    doc_url = extract_doc_link(response)
+    assert doc_url is not None
+    assert doc_url.startswith("https://docs.google.com")
+
 
 def test_html_to_requests():
     app = create_app()

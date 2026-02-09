@@ -1,5 +1,5 @@
 from __future__ import print_function
-
+from itertools import zip_longest
 import os
 import io
 import json
@@ -170,7 +170,7 @@ def create_app():
         drive_service = build("drive", "v3", credentials=creds)
 
         storyteller_names = [n.strip().title() for n in data["storyteller_names"]]
-        name_bios = list(zip(storyteller_names, data.get("author_bios", [])))
+        name_bios = list(zip_longest(storyteller_names, data.get("author_bios", []), fillvalue=""))
         name_bios.sort(key=lambda x: x[0])
 
         storyteller_names = [n for n, _ in name_bios]
@@ -190,7 +190,7 @@ def create_app():
             drive_service.files()
             .copy(
                 fileId=TEMPLATE_DOC_ID,
-                body={"name": data["title"]},
+                body={"name": data["title"], "parents": ["0AMAep1gMANZ_Uk9PVA"]},
                 supportsAllDrives=True,
             )
             .execute()
@@ -256,7 +256,9 @@ def create_app():
 
             # Insert body text (HTML conversion)
             start_body_index = index
+            # new line for space between chapter title and body
             html_reqs, new_index = convert_html_to_requests(index, text)
+            html_reqs.insert(0, {"insertText": {"location": {"index": index}, "text": "\n"}})
             requests.extend(html_reqs)
             index = new_index
 
